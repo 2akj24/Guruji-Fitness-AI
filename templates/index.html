@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Adaptive Fitness Coach</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+
+<header class="navbar-header">
+    <div class="header-container">
+        <div class="brand-group">
+            <h1 class="brand-name">GURUJI FITNESS</h1>
+            <p class="tagline">Personalized Desi Diets & Modern Workouts Plans</p>
+        </div>
+        <div class="logo-wrapper">
+            <img src="{{ url_for('static', filename='Logo.png') }}" 
+                 alt="Logo" 
+                 class="logo-img" 
+                 id="logoTrigger">
+        </div>
+    </div> 
+</header>
+
+<!-- Logo Modal -->
+<div id="logoModal" class="modal">
+    <span class="close-modal">&times;</span>
+    <img class="modal-content" id="fullLogo">
+</div>
+
+<div class="container-fluid mt-5 px-5">
+    <div class="main-content-grid">
+
+        <!-- FORM SECTION -->
+        <div class="card p-4 shadow form-section">
+            <form id="planForm">
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label>Weight (kg)</label>
+                        <input type="number" name="weight" class="form-control" placeholder="e.g. 75" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Height (cm)</label>
+                        <input type="number" name="height" class="form-control" placeholder="e.g. 175" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Age</label>
+                        <input type="number" name="age" class="form-control" placeholder="e.g. 21" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label>Fitness Goal</label>
+                    <select name="goal" class="form-select">
+                        <option value="muscle_gain">Bulking (Muscle Gain)</option>
+                        <option value="fat_loss">Cutting (Fat Loss)</option>
+                        <option value="maintain">Maintenance</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label>Diet Preference</label>
+                    <select name="diet_type" class="form-select">
+                        <option value="veg">Vegetarian (Indian)</option>
+                        <option value="nonveg">Non-Vegetarian (Indian)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label>Activity Level</label>
+                    <select name="activity_level" class="form-select">
+                        <option value="low">Low (Little to no exercise)</option>
+                        <option value="moderate">Moderate (3-5 days/week)</option>
+                        <option value="high">High (6+ days intense)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label>Budget</label>
+                    <select name="budget" class="form-select">
+                        <option value="low">Student Budget (₹)</option>
+                        <option value="medium">Moderate</option>
+                        <option value="high">Premium</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label>Region Preference</label>
+                    <select name="region" class="form-select">
+                        <option value="north">North Indian</option>
+                        <option value="south">South Indian</option>
+                        <option value="all">Mixed</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label>Cooking Time Preference</label>
+                    <select name="time_pref" class="form-select">
+                        <option value="quick">Quick Meals</option>
+                        <option value="medium">Moderate Time</option>
+                        <option value="long">Detailed Cooking</option>
+                    </select>
+                </div>
+
+                <!-- Hidden user_id -->
+                <input type="hidden" id="user_id" name="user_id">
+
+                <button type="submit" id="submitBtn" class="btn btn-primary w-100">
+                    Generate Personalized Plan
+                </button>
+
+            </form>
+        </div>
+
+        <!-- INFO SECTION -->
+        <div class="card p-4 shadow info-section">
+            <h3 class="text-info">Popular Workout Splits</h3>
+            <hr style="border-color: #444;">
+            <ul class="workout-list">
+                <li><strong>Push/Pull/Legs:</strong> 6 days/week for maximum growth.</li>
+                <li><strong>Upper/Lower:</strong> 4 days/week for great recovery.</li>
+                <li><strong>Bro Split:</strong> 5 days/week focusing on one muscle.</li>
+                <li><strong>Full Body:</strong> 3 days/week for busy students.</li>
+            </ul>
+            <div class="desi-tip mt-4">
+                <p>💡 <strong>Guruji Tip:</strong> Always prioritize 1g protein per lb of bodyweight even on rest days!</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LOADING -->
+    <div id="loading" class="text-center mt-4" style="display:none;">
+        <div class="spinner-border text-info" role="status"></div>
+        <p class="mt-2 text-info">Coach is analyzing your data and preparing your Indian diet...</p>
+    </div>
+
+    <!-- RESULT -->
+    <div id="result" class="mt-5 p-4 shadow rounded" style="display:none;"></div>
+
+    <!-- SCORING BUTTONS -->
+    <div class="mt-3 text-center">
+        <button class="btn btn-success me-2" onclick="updateProgress(true, true)">
+            Followed Plan + Workout ✅
+        </button>
+        <button class="btn btn-danger" onclick="updateProgress(false, false)">
+            Skipped ❌
+        </button>
+    </div>
+
+</div>
+
+<script>
+    
+    const modal = document.getElementById("logoModal");
+    const img = document.getElementById("logoTrigger");
+    const modalImg = document.getElementById("fullLogo");
+    const span = document.querySelector(".close-modal");
+
+    img.onclick = () => {
+        modal.style.display = "block";
+        modalImg.src = img.src;
+    };
+
+    span.onclick = () => modal.style.display = "none";
+
+    window.onclick = (event) => {
+        if (event.target == modal) modal.style.display = "none";
+    };
+
+    // Plan Generation
+    const planForm = document.getElementById('planForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const loading = document.getElementById('loading');
+    const resultDiv = document.getElementById('result');
+
+    planForm.onsubmit = async (e) => {
+        e.preventDefault();
+
+        submitBtn.disabled = true;
+        loading.style.display = 'block';
+        resultDiv.style.display = 'none';
+
+        const formData = new FormData(planForm);
+
+        try {
+            const response = await fetch('/get_plan', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            document.getElementById("user_id").value = data.user_id;
+            resultDiv.innerHTML = data.plan;
+            //resultDiv.innerText = data.plan;
+            resultDiv.style.display = 'block';
+
+            console.log("Raw Plan:", data.raw_plan);
+
+        } catch (error) {
+            alert("Error connecting to the coach.");
+        } finally {
+            submitBtn.disabled = false;
+            loading.style.display = 'none';
+        }
+    };
+
+    function cleanHTML(html) {
+    return html
+        .replace(/<!DOCTYPE[^>]*>/gi, "")
+        .replace(/<html[^>]*>/gi, "")
+        .replace(/<\/html>/gi, "")
+        .replace(/<head[^>]*>.*?<\/head>/gis, "")
+        .replace(/<style[^>]*>.*?<\/style>/gis, "");
+}
+    
+
+    // Scoring System
+    async function updateProgress(followed, workout) {
+        const user_id = document.getElementById("user_id").value;
+
+        if (!user_id) {
+            alert("Generate a plan first!");
+            return;
+        }
+
+        try {
+            const response = await fetch('/update_progress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: user_id,
+                    followed_diet: followed,
+                    workout_done: workout
+                })
+            });
+
+            const data = await response.json();
+            alert("Your new score: " + data.new_score);
+
+        } catch (error) {
+            alert("Error updating progress");
+        }
+
+    }
+</script>
+
+
+</body>
+</html>
