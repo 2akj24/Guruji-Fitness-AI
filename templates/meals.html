@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Database - Guruji Fitness</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body { background: #0f0f0f; color: #eee; }
+        .meal-card {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+            transition: transform 0.2s;
+        }
+        .meal-card:hover { transform: translateY(-3px); border-color: #0dcaf0; }
+        .badge-region { background: #0d6efd; }
+        .badge-diet-veg { background: #198754; }
+        .badge-diet-nonveg { background: #dc3545; }
+        .stat { font-size: 0.85rem; color: #aaa; }
+        .stat span { color: #0dcaf0; font-weight: bold; }
+        h2 { color: #0dcaf0; }
+        .filter-bar select { background: #1a1a2e; color: #eee; border-color: #444; }
+        .back-btn { color: #0dcaf0; text-decoration: none; }
+        .back-btn:hover { color: #fff; }
+        .count-badge { background: #0dcaf0; color: #000; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="/" class="back-btn">← Back to Planner</a>
+            <h2 class="mt-2">🍽️ Meal Database</h2>
+            <p class="text-muted">All meals stored in SQLite — filtered dynamically for each user</p>
+        </div>
+        <span class="count-badge">{{ meals|length }} Meals</span>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="row filter-bar mb-4">
+        <div class="col-md-3 mb-2">
+            <select id="filterRegion" class="form-select" onchange="filterMeals()">
+                <option value="">All Regions</option>
+                <option value="north">North Indian</option>
+                <option value="south">South Indian</option>
+                <option value="all">Mixed / All</option>
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <select id="filterDiet" class="form-select" onchange="filterMeals()">
+                <option value="">All Diet Types</option>
+                <option value="veg">Vegetarian</option>
+                <option value="nonveg">Non-Vegetarian</option>
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <select id="filterBudget" class="form-select" onchange="filterMeals()">
+                <option value="">All Budgets</option>
+                <option value="low">Low (Student)</option>
+                <option value="medium">Medium</option>
+                <option value="high">Premium</option>
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <select id="filterTime" class="form-select" onchange="filterMeals()">
+                <option value="">All Prep Times</option>
+                <option value="quick">Quick</option>
+                <option value="medium">Medium</option>
+                <option value="long">Long</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Meal Cards -->
+    <div id="mealList" class="row">
+        {% for meal in meals %}
+        <div class="col-md-4 meal-item"
+             data-region="{{ meal.region }}"
+             data-diet="{{ meal.diet_type }}"
+             data-budget="{{ meal.budget }}"
+             data-time="{{ meal.time_pref }}">
+            <div class="meal-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h6 class="mb-1">{{ meal.name | title }}</h6>
+                    <span class="badge {{ 'badge-diet-veg' if meal.diet_type == 'veg' else 'badge-diet-nonveg' }}">
+                        {{ '🌱 Veg' if meal.diet_type == 'veg' else '🍗 Non-Veg' }}
+                    </span>
+                </div>
+                <div class="stat mt-2">
+                    🔥 Calories: <span>{{ meal.calories }} kcal</span> &nbsp;|&nbsp;
+                    💪 Protein: <span>{{ meal.protein }}g</span>
+                </div>
+                <div class="stat mt-1">
+                    📍 Region: <span>{{ meal.region | title }}</span> &nbsp;|&nbsp;
+                    💰 Budget: <span>{{ meal.budget | title }}</span>
+                </div>
+                <div class="stat mt-1">
+                    ⏱️ Prep: <span>{{ meal.time_pref | title }}</span> &nbsp;|&nbsp;
+                    🕐 Meal: <span>{{ meal.meal_time | title if meal.meal_time else 'Any' }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="noResults" class="text-center text-muted mt-4" style="display:none;">
+        No meals found for selected filters.
+    </div>
+
+</div>
+
+<script>
+function filterMeals() {
+    const region = document.getElementById('filterRegion').value;
+    const diet = document.getElementById('filterDiet').value;
+    const budget = document.getElementById('filterBudget').value;
+    const time = document.getElementById('filterTime').value;
+
+    const items = document.querySelectorAll('.meal-item');
+    let visible = 0;
+
+    items.forEach(item => {
+        const matchRegion = !region || item.dataset.region === region || item.dataset.region === 'all';
+        const matchDiet = !diet || item.dataset.diet === diet;
+        const matchBudget = !budget || item.dataset.budget === budget;
+        const matchTime = !time || item.dataset.time === time;
+
+        if (matchRegion && matchDiet && matchBudget && matchTime) {
+            item.style.display = 'block';
+            visible++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+}
+</script>
+
+</body>
+</html>

@@ -1,29 +1,69 @@
-meals_db = [
-    {"name": "paneer bhurji", "calories": 300, "protein": 20, "region": "north", "budget": "low", "time": "quick"},
-    {"name": "dal chawal", "calories": 400, "protein": 15, "region": "north", "budget": "low", "time": "medium"},
-    {"name": "tofu stir fry", "calories": 350, "protein": 25, "region": "south", "budget": "medium", "time": "quick"},
-    {"name": "oats smoothie", "calories": 250, "protein": 10, "region": "all", "budget": "low", "time": "quick"},
-]
+import sqlite3
 
 
 def filter_meals(user, target_calories):
-    filtered = []
+    conn = sqlite3.connect("fitai.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
 
-    for meal in meals_db:
-        if (
-            (meal["region"] == user["region"] or meal["region"] == "all") and
-            meal["budget"] == user["budget"] and
-            meal["time"] == user["time_pref"]
-        ):
-            filtered.append(meal)
+    region = user.get("region", "all")
+    budget = user.get("budget", "low")
+    time_pref = user.get("time_pref", "quick")
+    diet_type = user.get("diet_type", "veg")
 
-    # simple selection
-    total = 0
+    # 1. Exact match: region + budget + time + diet
+    cursor.execute("""
+        SELECT * FROM meals
+        WHERE (region = ? OR region = 'all')
+        AND budget = ?
+        AND time_pref = ?
+        AND diet_type = ?
+        ORDER BY meal_time, protein DESC
+    """, (region, budget, time_pref, diet_type))
+
+    rows = cursor.fetchall()
+
+    # 2. Relax time preference
+    if not rows:
+        cursor.execute("""
+            SELECT * FROM meals
+            WHERE (region = ? OR region = 'all')
+            AND budget = ?
+            AND diet_type = ?
+            ORDER BY meal_time, protein DESC
+        """, (region, budget, diet_type))
+        rows = cursor.fetchall()
+
+    # 3. Relax budget
+    if not rows:
+        cursor.execute("""
+            SELECT * FROM meals
+            WHERE (region = ? OR region = 'all')
+            AND diet_type = ?
+            ORDER BY meal_time, protein DESC
+        """, (region, diet_type))
+        rows = cursor.fetchall()
+
+    # 4. Final fallback
+    if not rows:
+        cursor.execute("""
+            SELECT * FROM meals
+            WHERE diet_type = ?
+            ORDER BY protein DESC
+            LIMIT 8
+        """, (diet_type,))
+        rows = cursor.fetchall()
+
+    conn.close()
+
     selected = []
+    total_calories = 0
 
-    for meal in filtered:
-        if total + meal["calories"] <= target_calories:
+    for row in rows:
+        meal = dict(row)
+
+        if total_calories + meal["calories"] <= target_calories:
             selected.append(meal)
-            total += meal["calories"]
+            total_calories += meal["calories"]
 
     return selected

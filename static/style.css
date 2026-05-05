@@ -17,6 +17,7 @@
     }
 
     .header-container {
+        
         display: flex;
         justify-content: space-between; /* Pushes the 'Brand Group' left and 'Logo' right */
         align-items: center;
@@ -26,9 +27,12 @@
     }
 
     .brand-group {
+        
+
         display: flex;
         flex-direction: column; /* This forces the tagline UNDER the name */
         align-items: flex-start; /* Aligns both to the left edge */
+        gap: 10px;
         flex: 1; /* Allows this group to take up the available left-side space */
     }
 
@@ -40,7 +44,11 @@
         margin: 0;
         line-height: 1;
     }
-
+    
+    .explore-btn {
+        width: fit-content;
+        margin-top: 8px;
+    }
     .tagline {
         font-size: 1.2rem;
         color: var(--accent-color);

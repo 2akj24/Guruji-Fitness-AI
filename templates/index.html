@@ -11,20 +11,31 @@
 <body>
 
 
-<header class="navbar-header">
+<header class="navbar-header"> 
     <div class="header-container">
         <div class="brand-group">
             <h1 class="brand-name">GURUJI FITNESS</h1>
             <p class="tagline">Personalized Desi Diets & Modern Workouts Plans</p>
+
+            <a href="/meals" class="btn btn-info btn-lg explore-btn">
+                🍽️ Explore Meal Database
+            </a>
+            <a id="historyBtn" class="btn btn-warning mt-3" style="display:none;">
+                📊 View Progress
+            </a>
         </div>
+
         <div class="logo-wrapper">
             <img src="{{ url_for('static', filename='Logo.png') }}" 
                  alt="Logo" 
                  class="logo-img" 
                  id="logoTrigger">
         </div>
-    </div> 
+    </div>  
 </header>
+
+
+
 
 <!-- Logo Modal -->
 <div id="logoModal" class="modal">
@@ -156,101 +167,140 @@
 </div>
 
 <script>
-    
+document.addEventListener("DOMContentLoaded", function () {
     const modal = document.getElementById("logoModal");
     const img = document.getElementById("logoTrigger");
     const modalImg = document.getElementById("fullLogo");
     const span = document.querySelector(".close-modal");
 
-    img.onclick = () => {
-        modal.style.display = "block";
-        modalImg.src = img.src;
-    };
+    const planForm = document.getElementById("planForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const loading = document.getElementById("loading");
+    const resultDiv = document.getElementById("result");
+    const userIdInput = document.getElementById("user_id");
 
-    span.onclick = () => modal.style.display = "none";
+    const savedUserId = localStorage.getItem("user_id");
+    if (savedUserId) {
+        userIdInput.value = savedUserId;
 
-    window.onclick = (event) => {
-        if (event.target == modal) modal.style.display = "none";
-    };
+        const historyBtn = document.getElementById("historyBtn");
+        if (historyBtn) {
+            historyBtn.style.display = "inline-block";
+            historyBtn.href = "/history/" + savedUserId;
+        }
+    }
 
-    // Plan Generation
-    const planForm = document.getElementById('planForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const loading = document.getElementById('loading');
-    const resultDiv = document.getElementById('result');
+    if (img && modal && modalImg && span) {
+        img.onclick = () => {
+            modal.style.display = "block";
+            modalImg.src = img.src;
+        };
+
+        span.onclick = () => modal.style.display = "none";
+
+        window.onclick = (event) => {
+            if (event.target === modal) modal.style.display = "none";
+        };
+    }
+
+    function cleanHTML(html) {
+        if (!html) return "";
+
+        return html
+            .replace(/```html/gi, "")
+            .replace(/```/g, "")
+            .replace(/<!DOCTYPE[^>]*>/gi, "")
+            .replace(/<html[^>]*>/gi, "")
+            .replace(/<\/html>/gi, "")
+            .replace(/<head[^>]*>.*?<\/head>/gis, "")
+            .replace(/<body[^>]*>/gi, "")
+            .replace(/<\/body>/gi, "")
+            .replace(/<style[^>]*>.*?<\/style>/gis, "");
+    }
 
     planForm.onsubmit = async (e) => {
         e.preventDefault();
 
         submitBtn.disabled = true;
-        loading.style.display = 'block';
-        resultDiv.style.display = 'none';
+        loading.style.display = "block";
+        resultDiv.style.display = "none";
 
         const formData = new FormData(planForm);
 
         try {
-            const response = await fetch('/get_plan', {
-                method: 'POST',
+            const response = await fetch("/get_plan", {
+                method: "POST",
                 body: formData
             });
 
             const data = await response.json();
+            console.log("FULL RESPONSE:", data);
 
-            document.getElementById("user_id").value = data.user_id;
-            resultDiv.innerHTML = data.plan;
-            //resultDiv.innerText = data.plan;
-            resultDiv.style.display = 'block';
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
 
-            console.log("Raw Plan:", data.raw_plan);
+            if (!data.plan) {
+                alert("No plan received from server.");
+                return;
+            }
+
+            localStorage.setItem("user_id", data.user_id);
+            userIdInput.value = data.user_id;
+
+            resultDiv.innerHTML = cleanHTML(data.plan);
+            resultDiv.style.display = "block";
+
+            const historyBtn = document.getElementById("historyBtn");
+            if (historyBtn) {
+                historyBtn.style.display = "inline-block";
+                historyBtn.href = "/history/" + data.user_id;
+            }
 
         } catch (error) {
-            alert("Error connecting to the coach.");
+            console.error("Frontend error:", error);
+            alert("Frontend Error: " + error.message);
         } finally {
             submitBtn.disabled = false;
-            loading.style.display = 'none';
+            loading.style.display = "none";
         }
     };
+});
 
-    function cleanHTML(html) {
-    return html
-        .replace(/<!DOCTYPE[^>]*>/gi, "")
-        .replace(/<html[^>]*>/gi, "")
-        .replace(/<\/html>/gi, "")
-        .replace(/<head[^>]*>.*?<\/head>/gis, "")
-        .replace(/<style[^>]*>.*?<\/style>/gis, "");
-}
-    
+async function updateProgress(followed, workout) {
+    const user_id = document.getElementById("user_id").value;
 
-    // Scoring System
-    async function updateProgress(followed, workout) {
-        const user_id = document.getElementById("user_id").value;
+    if (!user_id) {
+        alert("Generate a plan first!");
+        return;
+    }
 
-        if (!user_id) {
-            alert("Generate a plan first!");
+    try {
+        const response = await fetch("/update_progress", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                user_id: user_id,
+                followed_diet: followed,
+                workout_done: workout
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            alert(data.error);
             return;
         }
 
-        try {
-            const response = await fetch('/update_progress', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: user_id,
-                    followed_diet: followed,
-                    workout_done: workout
-                })
-            });
+        alert("Your new score: " + data.new_score);
 
-            const data = await response.json();
-            alert("Your new score: " + data.new_score);
-
-        } catch (error) {
-            alert("Error updating progress");
-        }
-
+    } catch (error) {
+        alert("Error updating progress: " + error.message);
     }
+}
 </script>
-
 
 </body>
 </html>

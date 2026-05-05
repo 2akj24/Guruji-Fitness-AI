@@ -1,35 +1,60 @@
+import sqlite3
+
+
 def update_score(user_id, followed_diet, workout_done):
-    import sqlite3
     conn = sqlite3.connect("fitai.db")
     cursor = conn.cursor()
 
-    score = 0
+    # Calculate points
+    points = 0
     if followed_diet:
-        score += 10
+        points += 5
     if workout_done:
-        score += 10
+        points += 5
 
-    cursor.execute("SELECT score FROM users WHERE user_id=?", (user_id,))
-    current = cursor.fetchone()[0]
+    # Insert progress log
+    cursor.execute("""
+        INSERT INTO progress (user_id, score, followed_diet, workout_done)
+        VALUES (?, ?, ?, ?)
+    """, (user_id, points, int(followed_diet), int(workout_done)))
 
-    new_score = current + score
-
-    cursor.execute("UPDATE users SET score=? WHERE user_id=?", (new_score, user_id))
     conn.commit()
-    conn.close()
 
-    return new_score
+    # Get total score for this user
+    cursor.execute("""
+        SELECT SUM(score) FROM progress WHERE user_id = ?
+    """, (user_id,))
+    total = cursor.fetchone()[0] or 0
+
+    conn.close()
+    return total
 
 
 def adjust_plan_based_on_score(score, plan):
-    # rule-based adaptation
-    if score < 50:
-        plan["difficulty"] = "easy"
-        plan["note"] = "Focus on consistency, not intensity."
-    elif score < 100:
-        plan["difficulty"] = "moderate"
+    if score >= 50:
+        plan["calories"] += 100
+        plan["protein"] += 5
+        plan["level"] = "Advanced"
+    elif score >= 20:
+        plan["level"] = "Intermediate"
     else:
-        plan["difficulty"] = "hard"
-        plan["note"] = "You are doing great, push harder!"
-
+        plan["level"] = "Beginner"
     return plan
+
+
+def get_user_history(user_id):
+    conn = sqlite3.connect("fitai.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT score, followed_diet, workout_done, logged_at
+        FROM progress
+        WHERE user_id = ?
+        ORDER BY logged_at DESC
+        LIMIT 10
+    """, (user_id,))
+
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
