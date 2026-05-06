@@ -1,6 +1,5 @@
 import sqlite3
 
-
 def filter_meals(user, target_calories):
     conn = sqlite3.connect("fitai.db")
     conn.row_factory = sqlite3.Row
